@@ -1,46 +1,530 @@
-name: Azure Static Web Apps CI/CD
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Temporizador Circular - Juegos de Mesa</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+        body {
+            margin: 0;
+            padding: 15px 10px;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
 
-jobs:
-  build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
-    runs-on: ubuntu-latest
-    name: Build and Deploy Job
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          lfs: false
-      - name: Build And Deploy
-        id: builddeploy
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_VICTORIOUS_PLANT_0C9F7F410 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
-          action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "." # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+        /* Panel superior */
+        .top-panel {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            background: rgba(30, 41, 59, 0.8);
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: 1px solid #475569;
+            z-index: 100;
+            width: 100%;
+            max-width: 450px;
+            flex-wrap: wrap;
+        }
 
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
-    steps:
-      - name: Close Pull Request
-        id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_VICTORIOUS_PLANT_0C9F7F410 }}
-          action: "close"
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #38bdf8;
+        }
+
+        select, input[type="number"] {
+            padding: 5px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            background: #0f172a;
+            color: #fff;
+            border: 1px solid #475569;
+            text-align: center;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; margin: 0; 
+        }
+
+        .sound-icon-btn {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #fff;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        /* Contenedor Circular de la Mesa */
+        .table-container {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            flex: 1;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Botón de Ruleta en el Centro */
+        .roulette-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1e293b;
+            color: #fff;
+            border: 2px solid #38bdf8;
+            border-radius: 50%;
+            width: 85px;
+            height: 85px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .roulette-btn:active {
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+
+        /* Tarjetas de jugadores */
+        .player-card {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 120px;
+            height: 115px;
+            margin-left: -60px;
+            margin-top: -57.5px;
+            background-color: #1e293b;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 3px solid transparent;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-sizing: border-box;
+        }
+
+        /* Colores únicos por jugador */
+        .p-0 { border-color: #3b82f6; } /* Azul */
+        .p-1 { border-color: #10b981; } /* Verde */
+        .p-2 { border-color: #f59e0b; } /* Naranja */
+        .p-3 { border-color: #8b5cf6; } /* Morado */
+        .p-4 { border-color: #ec4899; } /* Rosa */
+        .p-5 { border-color: #06b6d4; } /* Cian */
+
+        .p-0.active { background-color: #1d4ed8; border-color: #93c5fd; box-shadow: 0 0 20px #3b82f6; }
+        .p-1.active { background-color: #047857; border-color: #6ee7b7; box-shadow: 0 0 20px #10b981; }
+        .p-2.active { background-color: #b45309; border-color: #fde047; box-shadow: 0 0 20px #f59e0b; }
+        .p-3.active { background-color: #5b21b6; border-color: #c4b5fd; box-shadow: 0 0 20px #8b5cf6; }
+        .p-4.active { background-color: #be185d; border-color: #f472b6; box-shadow: 0 0 20px #ec4899; }
+        .p-5.active { background-color: #0e7490; border-color: #67e8f9; box-shadow: 0 0 20px #06b6d4; }
+
+        .player-card.time-up {
+            background-color: #7f1d1d !important;
+            border-color: #f87171 !important;
+            box-shadow: 0 0 25px #ef4444 !important;
+        }
+
+        .player-name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            background: transparent;
+            border: none;
+            color: #fff;
+            text-align: center;
+            width: 100%;
+            border-bottom: 1px dashed rgba(255,255,255,0.3);
+        }
+
+        .player-name:focus {
+            outline: none;
+            border-bottom: 1px solid #38bdf8;
+        }
+
+        .timer-display {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .turn-btn {
+            background-color: rgba(255,255,255,0.15);
+            color: #fff;
+            border: none;
+            padding: 8px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .player-card.active .turn-btn {
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+
+        /* Controles Globales */
+        .global-controls {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 350px;
+            margin-bottom: 5px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 800;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        #btn-pause { background-color: #f59e0b; }
+        #btn-reset { background-color: #ef4444; }
+    </style>
+</head>
+<body>
+
+    <!-- Panel Superior -->
+    <div class="top-panel">
+        <div class="config-group">
+            <label>👤</label>
+            <select id="numPlayers" onchange="cambiarCantidadJugadores()">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4" selected>4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+            </select>
+        </div>
+        <div class="config-group">
+            <label>⏱️</label>
+            <input type="number" id="timeMin" value="1" min="0" style="width: 40px;" onchange="cambiarTiempoInicial()"> <span style="font-size: 0.8rem">m</span>
+            <input type="number" id="timeSec" value="0" min="0" max="59" style="width: 40px;" onchange="cambiarTiempoInicial()"> <span style="font-size: 0.8rem">s</span>
+        </div>
+        <button class="sound-icon-btn" id="sound-btn" onclick="toggleSonido()">🔊</button>
+    </div>
+
+    <!-- Mesa Circular -->
+    <div class="table-container">
+        <div id="tableGrid" style="width: 100%; height: 100%; position: relative;"></div>
+        <!-- Botón Ruleta Central -->
+        <button class="roulette-btn" id="roulette-btn" onclick="sortearInicio()">🎲<br>SORTEAR</button>
+    </div>
+
+    <!-- Controles Globales -->
+    <div class="global-controls">
+        <button class="control-btn" id="btn-pause" onclick="pausarJuego()">Pausar</button>
+        <button class="control-btn" id="btn-reset" onclick="reiniciarJuego()">Reset</button>
+    </div>
+
+    <audio id="beep" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script>
+        let totalJugadores = 4;
+        let tiempoPorTurno = 60;
+        let jugadores = [];
+        let turnoActual = null;
+        let intervalo = null;
+        let juegoPausado = false;
+        let sonidoActivado = true;
+        let ruletaGirando = false;
+        let intervaloRuleta = null;
+
+        // Paleta de colores para la ruleta
+        const coloresJugadores = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+        function obtenerRadio() {
+            return window.innerWidth < 400 ? 120 : 145; 
+        }
+
+        function inicializarDatos() {
+            jugadores = [];
+            for (let i = 0; i < totalJugadores; i++) {
+                jugadores.push({
+                    id: i,
+                    nombre: `Jugador ${i + 1}`,
+                    tiempoRestante: tiempoPorTurno,
+                    activo: false,
+                    agotado: false
+                });
+            }
+        }
+
+        function renderMesa() {
+            const tableGrid = document.getElementById('tableGrid');
+            tableGrid.innerHTML = '';
+            const radio = obtenerRadio();
+
+            jugadores.forEach((j, index) => {
+                const gradosRotacion = (index * 360) / totalJugadores;
+                
+                // MAGIA AQUI: rotate(180deg) hace que queden mirando hacia afuera (hacia cada jugador)
+                const transformCSS = `rotate(${gradosRotacion}deg) translateY(-${radio}px) rotate(180deg) scale(1)`;
+
+                const textoBoton = (turnoActual === null) ? 'Iniciar' : 'Terminar';
+
+                const cardHTML = `
+                    <div class="player-card p-${j.id}" id="card-${j.id}" 
+                         style="transform: ${transformCSS};">
+                        <input type="text" class="player-name" value="${j.nombre}" onchange="actualizarNombre(${j.id}, this.value)">
+                        <div class="timer-display" id="timer-${j.id}">${formatearTiempo(j.tiempoRestante)}</div>
+                        <button class="turn-btn" id="btn-${j.id}" onclick="pasarTurno(${j.id})">${textoBoton}</button>
+                    </div>
+                `;
+                tableGrid.innerHTML += cardHTML;
+            });
+            actualizarInterfazRuleta();
+        }
+
+        function formatearTiempo(segundos) {
+            let m = Math.floor(segundos / 60);
+            let s = segundos % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function actualizarNombre(id, nuevoNombre) {
+            jugadores[id].nombre = nuevoNombre;
+        }
+
+        function cambiarCantidadJugadores() {
+            if(ruletaGirando) return;
+            totalJugadores = parseInt(document.getElementById('numPlayers').value);
+            reiniciarJuego();
+        }
+
+        function cambiarTiempoInicial() {
+            if(ruletaGirando) return;
+            let m = parseInt(document.getElementById('timeMin').value) || 0;
+            let s = parseInt(document.getElementById('timeSec').value) || 0;
+            tiempoPorTurno = (m * 60) + s;
+            if (tiempoPorTurno < 5) tiempoPorTurno = 5; 
+            reiniciarJuego();
+        }
+
+        function toggleSonido() {
+            sonidoActivado = !sonidoActivado;
+            document.getElementById('sound-btn').textContent = sonidoActivado ? "🔊" : "🔇";
+        }
+
+        function sortearInicio() {
+            if (ruletaGirando || turnoActual !== null) return;
+            ruletaGirando = true;
+            
+            const btnRuleta = document.getElementById('roulette-btn');
+            let contador = 0;
+            
+            intervaloRuleta = setInterval(() => {
+                let randomTemp = Math.floor(Math.random() * totalJugadores);
+                btnRuleta.style.backgroundColor = coloresJugadores[randomTemp];
+                btnRuleta.style.borderColor = "#ffffff";
+                btnRuleta.textContent = "🎲...";
+                contador++;
+                
+                if (contador > 15) {
+                    clearInterval(intervaloRuleta);
+                    let ganador = Math.floor(Math.random() * totalJugadores);
+                    
+                    btnRuleta.style.backgroundColor = coloresJugadores[ganador];
+                    btnRuleta.innerHTML = `⭐<br>${jugadores[ganador].nombre}`;
+                    
+                    setTimeout(() => {
+                        ruletaGirando = false;
+                        turnoActual = ganador;
+                        activarJugador(turnoActual);
+                    }, 1200);
+                }
+            }, 100);
+        }
+
+        function actualizarInterfazRuleta() {
+            const btnRuleta = document.getElementById('roulette-btn');
+            if (turnoActual === null && !ruletaGirando) {
+                btnRuleta.style.display = 'flex';
+                btnRuleta.style.backgroundColor = '#1e293b';
+                btnRuleta.style.borderColor = '#38bdf8';
+                btnRuleta.innerHTML = '🎲<br>SORTEAR';
+            } else if (turnoActual !== null) {
+                btnRuleta.style.display = 'none';
+            }
+        }
+
+        function pasarTurno(id) {
+            if (juegoPausado || ruletaGirando) return;
+
+            if (turnoActual === null) {
+                turnoActual = id;
+                activarJugador(turnoActual);
+                return;
+            }
+
+            if (turnoActual === id) {
+                detenerTurnoActual();
+                turnoActual = (turnoActual + 1) % totalJugadores;
+                activarJugador(turnoActual);
+            }
+        }
+
+        function activarJugador(id) {
+            jugadores[id].tiempoRestante = tiempoPorTurno;
+            jugadores[id].agotado = false;
+            
+            jugadores.forEach(j => {
+                j.activo = false;
+                document.getElementById(`card-${j.id}`).classList.remove('time-up');
+            });
+
+            jugadores[id].activo = true;
+            actualizarUI();
+
+            clearInterval(intervalo);
+            intervalo = setInterval(() => {
+                if (jugadores[id].tiempoRestante > 0) {
+                    jugadores[id].tiempoRestante--;
+                    document.getElementById(`timer-${id}`).textContent = formatearTiempo(jugadores[id].tiempoRestante);
+                } else {
+                    jugadores[id].agotado = true;
+                    document.getElementById(`card-${id}`).classList.add('time-up');
+                    
+                    if (sonidoActivado) {
+                        document.getElementById('beep').play().catch(() => {});
+                    }
+                    
+                    detenerTurnoActual();
+                    turnoActual = (turnoActual + 1) % totalJugadores;
+                    activarJugador(turnoActual);
+                }
+            }, 1000);
+        }
+
+        function detenerTurnoActual() {
+            clearInterval(intervalo);
+            if (turnoActual !== null) {
+                jugadores[turnoActual].activo = false;
+                jugadores[turnoActual].tiempoRestante = tiempoPorTurno;
+                document.getElementById(`timer-${turnoActual}`).textContent = formatearTiempo(tiempoPorTurno);
+            }
+            actualizarUI();
+        }
+
+        function actualizarUI() {
+            const radio = obtenerRadio();
+            
+            jugadores.forEach((j, index) => {
+                const card = document.getElementById(`card-${j.id}`);
+                const btn = document.getElementById(`btn-${j.id}`);
+                const gradosRotacion = (index * 360) / totalJugadores;
+                
+                if (turnoActual === null) {
+                    btn.textContent = "Iniciar";
+                } else {
+                    btn.textContent = "Terminar";
+                }
+
+                if (j.activo) {
+                    card.classList.add('active');
+                    // Ojo aquí: se mantiene el rotate(180deg) para que no pierda la orientación al agrandarse
+                    card.style.transform = `rotate(${gradosRotacion}deg) translateY(-${radio}px) rotate(180deg) scale(1.15)`;
+                    card.style.zIndex = 50;
+                } else {
+                    card.classList.remove('active');
+                    card.style.transform = `rotate(${gradosRotacion}deg) translateY(-${radio}px) rotate(180deg) scale(1)`;
+                    card.style.zIndex = 10;
+                }
+            });
+
+            actualizarInterfazRuleta();
+        }
+
+        function pausarJuego() {
+            if (turnoActual === null || ruletaGirando) return;
+            juegoPausado = !juegoPausado;
+            const btnPausa = document.getElementById('btn-pause');
+
+            if (juegoPausado) {
+                clearInterval(intervalo);
+                btnPausa.textContent = "Reanudar";
+                btnPausa.style.backgroundColor = "#10b981";
+            } else {
+                btnPausa.textContent = "Pausar";
+                btnPausa.style.backgroundColor = "#f59e0b";
+                
+                intervalo = setInterval(() => {
+                    if (jugadores[turnoActual].tiempoRestante > 0) {
+                        jugadores[turnoActual].tiempoRestante--;
+                        document.getElementById(`timer-${turnoActual}`).textContent = formatearTiempo(jugadores[turnoActual].tiempoRestante);
+                    } else {
+                        detenerTurnoActual();
+                        turnoActual = (turnoActual + 1) % totalJugadores;
+                        activarJugador(turnoActual);
+                    }
+                }, 1000);
+            }
+        }
+
+        function reiniciarJuego() {
+            clearInterval(intervalo);
+            clearInterval(intervaloRuleta);
+            ruletaGirando = false;
+            turnoActual = null;
+            juegoPausado = false;
+            
+            document.getElementById('btn-pause').textContent = "Pausar";
+            document.getElementById('btn-pause').style.backgroundColor = "#f59e0b";
+
+            inicializarDatos();
+            renderMesa();
+        }
+
+        window.addEventListener('resize', renderMesa);
+
+        inicializarDatos();
+        renderMesa();
+    </script>
+</body>
+</html>
