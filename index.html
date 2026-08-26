@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temporizador por Turnos - Juegos de Mesa</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
+
+        body {
+            margin: 0;
+            padding: 15px 10px 10px 10px;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Botón de sonido flotante en la esquina superior derecha */
+        .sound-icon-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .sound-icon-btn:active {
+            transform: scale(0.9);
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            margin: 5px 0 15px 0;
+            text-align: center;
+            color: #38bdf8;
+        }
+
+        /* Configuración de tiempo inicial */
+        .config-container {
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        select {
+            padding: 8px 12px;
+            font-size: 1rem;
+            border-radius: 8px;
+            background: #1e293b;
+            color: #fff;
+            border: 1px solid #475569;
+        }
+
+        /* Cuadrícula de 4 jugadores (ideal para celular) */
+        .players-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            max-width: 450px;
+            flex: 1;
+            margin-bottom: 15px;
+        }
+
+        .player-card {
+            background-color: #1e293b;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        /* Colores únicos para cada tarjeta cuando están inactivos */
+        #card-0 { border-color: #3b82f6; } /* Azul */
+        #card-1 { border-color: #10b981; } /* Verde */
+        #card-2 { border-color: #f59e0b; } /* Naranja */
+        #card-3 { border-color: #8b5cf6; } /* Morado */
+
+        /* Estilo cuando es el turno activo (Se ilumina intensamente) */
+        .player-card.active {
+            transform: scale(1.03);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+        }
+
+        #card-0.active { background-color: #1d4ed8; border-color: #93c5fd; }
+        #card-1.active { background-color: #047857; border-color: #6ee7b7; }
+        #card-2.active { background-color: #b45309; border-color: #fde047; }
+        #card-3.active { background-color: #5b21b6; border-color: #c4b5fd; }
+
+        .player-card.time-up {
+            background-color: #7f1d1d !important;
+            border-color: #f87171 !important;
+            animation: palpitar 0.8s infinite alternate;
+        }
+
+        @keyframes palpitar {
+            from { opacity: 0.8; }
+            to { opacity: 1; transform: scale(1.05); }
+        }
+
+        .player-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            text-align: center;
+            width: 100%;
+            border-bottom: 1px dashed rgba(255,255,255,0.3);
+        }
+
+        .player-name:focus {
+            outline: none;
+            border-bottom: 1px solid #38bdf8;
+        }
+
+        .timer-display {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 10px 0;
+            letter-spacing: 1px;
+        }
+
+        .turn-btn {
+            background-color: rgba(255,255,255,0.15);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+
+        .turn-btn:active {
+            transform: scale(0.95);
+        }
+
+        .player-card.active .turn-btn {
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+
+        /* Controles Globales (Pausa / Reset) */
+        .global-controls {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 450px;
+            margin-bottom: 10px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+        }
+
+        #btn-pause {
+            background-color: #f59e0b;
+        }
+
+        #btn-reset {
+            background-color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Botón de sonido en la esquina superior derecha -->
+    <button class="sound-icon-btn" id="sound-btn" onclick="toggleSonido()" title="Silenciar / Activar sonido">🔊</button>
+
+    <h1>⌛ Timer por Turnos</h1>
+
+    <div class="config-container">
+        <label for="timeSelect">Tiempo por turno: </label>
+        <select id="timeSelect" onchange="cambiarTiempoInicial()">
+            <option value="30">30 Segundos</option>
+            <option value="60" selected>1 Minuto</option>
+            <option value="120">2 Minutos</option>
+            <option value="180">3 Minutos</option>
+            <option value="300">5 Minutos</option>
+        </select>
+    </div>
+
+    <!-- Pantalla de los 4 jugadores -->
+    <div class="players-grid" id="grid">
+        <!-- Se generan dinámicamente con JS -->
+    </div>
+
+    <div class="global-controls">
+        <button class="control-btn" id="btn-pause" onclick="pausarJuego()">Pausar</button>
+        <button class="control-btn" id="btn-reset" onclick="reiniciarJuego()">Reiniciar</button>
+    </div>
+
+    <audio id="beep" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script>
+        let tiempoPorTurno = 60; // 1 minuto por defecto
+        let jugadores = [
+            { id: 0, nombre: "Jugador 1", tiempoRestante: 60, activo: false, agotado: false },
+            { id: 1, nombre: "Jugador 2", tiempoRestante: 60, activo: false, agotado: false },
+            { id: 2, nombre: "Jugador 3", tiempoRestante: 60, activo: false, agotado: false },
+            { id: 3, nombre: "Jugador 4", tiempoRestante: 60, activo: false, agotado: false }
+        ];
+        
+        let turnoActual = null;
+        let intervalo = null;
+        let juegoPausado = false;
+        let sonidoActivado = true;
+
+        function iniciarApp() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            
+            jugadores.forEach(j => {
+                grid.innerHTML += `
+                    <div class="player-card" id="card-${j.id}">
+                        <input type="text" class="player-name" value="${j.nombre}" onchange="actualizarNombre(${j.id}, this.value)">
+                        <div class="timer-display" id="timer-${j.id}">${formatearTiempo(j.tiempoRestante)}</div>
+                        <button class="turn-btn" id="btn-${j.id}" onclick="pasarTurno(${j.id})">Terminar Turno</button>
+                    </div>
+                `;
+            });
+        }
+
+        function formatearTiempo(segundos) {
+            let m = Math.floor(segundos / 60);
+            let s = segundos % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function actualizarNombre(id, nuevoNombre) {
+            jugadores[id].nombre = nuevoNombre;
+        }
+
+        function cambiarTiempoInicial() {
+            const select = document.getElementById('timeSelect');
+            tiempoPorTurno = parseInt(select.value);
+            reiniciarJuego();
+        }
+
+        function toggleSonido() {
+            sonidoActivado = !sonidoActivado;
+            const btnSound = document.getElementById('sound-btn');
+            if (sonidoActivado) {
+                btnSound.textContent = "🔊";
+                btnSound.style.borderColor = "#475569";
+            } else {
+                btnSound.textContent = "🔇";
+                btnSound.style.borderColor = "#ef4444";
+            }
+        }
+
+        function pasarTurno(id) {
+            if (juegoPausado) return;
+
+            // Si nadie está jugando, arranca el que toque
+            if (turnoActual === null) {
+                turnoActual = id;
+                activarJugador(turnoActual);
+                return;
+            }
+
+            // Si el usuario hace clic en el botón de su tarjeta, pasa el turno al siguiente en orden (0 -> 1 -> 2 -> 3 -> 0)
+            if (turnoActual === id) {
+                detenerTurnoActual();
+                turnoActual = (turnoActual + 1) % 4;
+                activarJugador(turnoActual);
+            }
+        }
+
+        function activarJugador(id) {
+            // Reiniciamos el tiempo del jugador que va a empezar su turno al valor seleccionado
+            jugadores[id].tiempoRestante = tiempoPorTurno;
+            jugadores[id].agotado = false;
+            
+            jugadores.forEach(j => {
+                j.activo = false;
+                document.getElementById(`card-${j.id}`).classList.remove('time-up');
+            });
+
+            jugadores[id].activo = true;
+            actualizarUI();
+
+            clearInterval(intervalo);
+            intervalo = setInterval(() => {
+                if (jugadores[id].tiempoRestante > 0) {
+                    jugadores[id].tiempoRestante--;
+                    document.getElementById(`timer-${id}`).textContent = formatearTiempo(jugadores[id].tiempoRestante);
+                } else {
+                    // Se acabó el tiempo del turno
+                    jugadores[id].agotado = true;
+                    document.getElementById(`card-${id}`).classList.add('time-up');
+                    
+                    // Reproducir sonido solo si está activado
+                    if (sonidoActivado) {
+                        document.getElementById('beep').play().catch(() => {});
+                    }
+                    
+                    // Salto automático al siguiente cuando el tiempo llega a 0
+                    detenerTurnoActual();
+                    turnoActual = (turnoActual + 1) % 4;
+                    activarJugador(turnoActual);
+                }
+            }, 1000);
+        }
+
+        function detenerTurnoActual() {
+            clearInterval(intervalo);
+            if (turnoActual !== null) {
+                jugadores[turnoActual].activo = false;
+                // Reseteamos su pantalla visualmente al tiempo completo para que quede listo para su próximo turno
+                jugadores[turnoActual].tiempoRestante = tiempoPorTurno;
+                document.getElementById(`timer-${turnoActual}`).textContent = formatearTiempo(tiempoPorTurno);
+            }
+            actualizarUI();
+        }
+
+        function actualizarUI() {
+            jugadores.forEach(j => {
+                const card = document.getElementById(`card-${j.id}`);
+                if (j.activo) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+        }
+
+        function pausarJuego() {
+            if (turnoActual === null) return;
+            juegoPausado = !juegoPausado;
+            const btnPausa = document.getElementById('btn-pause');
+
+            if (juegoPausado) {
+                clearInterval(intervalo);
+                btnPausa.textContent = "Reanudar";
+                btnPausa.style.backgroundColor = "#10b981";
+            } else {
+                btnPausa.textContent = "Pausar";
+                btnPausa.style.backgroundColor = "#f59e0b";
+                
+                // Reanudamos el intervalo restando desde donde iba
+                intervalo = setInterval(() => {
+                    if (jugadores[turnoActual].tiempoRestante > 0) {
+                        jugadores[turnoActual].tiempoRestante--;
+                        document.getElementById(`timer-${turnoActual}`).textContent = formatearTiempo(jugadores[turnoActual].tiempoRestante);
+                    } else {
+                        detenerTurnoActual();
+                        turnoActual = (turnoActual + 1) % 4;
+                        activarJugador(turnoActual);
+                    }
+                }, 1000);
+            }
+        }
+
+        function reiniciarJuego() {
+            clearInterval(intervalo);
+            turnoActual = null;
+            juegoPausado = false;
+            document.getElementById('btn-pause').textContent = "Pausar";
+            document.getElementById('btn-pause').style.backgroundColor = "#f59e0b";
+
+            jugadores.forEach(j => {
+                j.tiempoRestante = tiempoPorTurno;
+                j.activo = false;
+                j.agotado = false;
+            });
+            iniciarApp();
+        }
+
+        // Inicializar al cargar
+        iniciarApp();
+    </script>
+</body>
+</html>
